@@ -1,0 +1,420 @@
+version: 2
+
+sources:
+  - name: raw
+    description: >
+      Datos en crudo cargados en la capa Bronze desde los ficheros CSV originales
+      del sistema de bicicletas compartidas. Fuente de verdad antes de cualquier
+      transformación.
+    schema: RAW
+    database: "{{ env_var('DBT_BRONZE_DB', 'DEV_BRONZE_DB') }}"
+
+    tables:
+
+      # -----------------------------------------------------------------------
+      # BIKES
+      # -----------------------------------------------------------------------
+      - name: bikes
+        description: Catálogo de tipos de bicicleta disponibles con características y tarifas.
+        columns:
+          - name: rideable_type
+            description: Identificador del tipo de bicicleta (PK de negocio).
+            tests:
+              - unique
+              - not_null
+          - name: nombre_tipo_bici
+            description: Nombre descriptivo del tipo de bicicleta.
+            tests:
+              - not_null
+          - name: bici_es_electrica
+            description: Indica si la bicicleta es eléctrica (sí/no).
+            tests:
+              - not_null
+              - accepted_values:
+                  values: ['sí', 'no']
+          - name: bici_tiene_muelle
+            description: Indica si la bicicleta tiene muelle de anclaje (sí/no).
+            tests:
+              - not_null
+              - accepted_values:
+                  values: ['sí', 'no']
+          - name: precio_desbloqueo_usd
+            description: Coste fijo de desbloqueo en USD.
+            tests:
+              - not_null
+          - name: precio_por_minuto_usd
+            description: Coste variable por minuto de uso en USD.
+            tests:
+              - not_null
+
+      # -----------------------------------------------------------------------
+      # DATES
+      # -----------------------------------------------------------------------
+      - name: dates
+        description: Tabla de fechas enriquecida con atributos temporales.
+        columns:
+          - name: fecha
+            description: Fecha en formato YYYY-MM-DD (PK).
+            tests:
+              - unique
+              - not_null
+          - name: anio
+            description: Año de la fecha.
+            tests:
+              - not_null
+          - name: mes_numero
+            description: Número de mes (1-12).
+            tests:
+              - not_null
+          - name: nombre_mes
+            description: Nombre del mes en español.
+            tests:
+              - not_null
+          - name: trimestre
+            description: Trimestre del año (1-4).
+            tests:
+              - not_null
+              - accepted_values:
+                  values: [1, 2, 3, 4]
+          - name: dia_semana_numero
+            description: Número de día de la semana (1=lunes, 7=domingo).
+            tests:
+              - not_null
+          - name: nombre_dia
+            description: Nombre del día de la semana en español.
+            tests:
+              - not_null
+          - name: es_fin_semana
+            description: Indica si la fecha es fin de semana (sí/no).
+            tests:
+              - not_null
+              - accepted_values:
+                  values: ['sí', 'no']
+          - name: hora
+            description: Hora del día (0-23).
+            tests:
+              - not_null
+          - name: franja_horaria
+            description: Franja horaria descriptiva.
+            tests:
+              - not_null
+          - name: turno
+            description: Turno del día (mañana, tarde, noche).
+            tests:
+              - not_null
+          - name: es_hora_pico
+            description: Indica si es hora pico de demanda (sí/no).
+            tests:
+              - not_null
+              - accepted_values:
+                  values: ['sí', 'no']
+
+      # -----------------------------------------------------------------------
+      # MEMBERSHIPS
+      # -----------------------------------------------------------------------
+      - name: memberships
+        description: Planes de membresía contratados por los usuarios.
+        columns:
+          - name: membership_id
+            description: Identificador único de membresía (PK).
+            tests:
+              - unique
+              - not_null
+          - name: user_id
+            description: Identificador del usuario propietario de la membresía (FK → users).
+            tests:
+              - not_null
+              - relationships:
+                  to: source('raw', 'users')
+                  field: user_id
+          - name: tipo_plan
+            description: Tipo de plan contratado.
+            tests:
+              - not_null
+          - name: precio_mensual_usd
+            description: Precio mensual del plan en USD.
+            tests:
+              - not_null
+          - name: descuento_pct
+            description: Porcentaje de descuento aplicado al coste del viaje.
+            tests:
+              - not_null
+
+      # -----------------------------------------------------------------------
+      # PAYMENTS
+      # -----------------------------------------------------------------------
+      - name: payments
+        description: Registro de pagos asociados a cada viaje.
+        loaded_at_field: fecha_pago
+        freshness:
+          warn_after:  { count: 24, period: hour }
+          error_after: { count: 48, period: hour }
+        columns:
+          - name: payment_id
+            description: Identificador único del pago (PK).
+            tests:
+              - unique
+              - not_null
+          - name: ride_id
+            description: Identificador del viaje asociado (FK → rides).
+            tests:
+              - not_null
+              - relationships:
+                  to: source('raw', 'rides')
+                  field: ride_id
+          - name: payment_method
+            description: Método de pago utilizado.
+            tests:
+              - not_null
+              - accepted_values:
+                  values: ['credit_card', 'debit_card', 'paypal',
+                           'apple_pay', 'google_pay', 'wallet_app']
+          - name: payment_status
+            description: Estado del pago.
+            tests:
+              - not_null
+              - accepted_values:
+                  values: ['completed', 'pending', 'failed']
+          - name: fecha_pago
+            description: Fecha en que se procesó el pago.
+            tests:
+              - not_null
+          - name: importe_usd
+            description: Importe total pagado en USD.
+            tests:
+              - not_null
+
+      # -----------------------------------------------------------------------
+      # RIDES
+      # -----------------------------------------------------------------------
+      - name: rides
+        description: >
+          Registro completo de todos los viajes realizados en el sistema.
+          Es la tabla principal del modelo operacional.
+        loaded_at_field: started_at
+        freshness:
+          warn_after:  { count: 24, period: hour }
+          error_after: { count: 48, period: hour }
+        columns:
+          - name: ride_id
+            description: Identificador único del viaje (PK).
+            tests:
+              - unique
+              - not_null
+          - name: user_id
+            description: Identificador del usuario (FK → users).
+            tests:
+              - not_null
+              - relationships:
+                  to: source('raw', 'users')
+                  field: user_id
+          - name: rideable_type
+            description: Tipo de bicicleta utilizada (FK → bikes).
+            tests:
+              - not_null
+              - relationships:
+                  to: source('raw', 'bikes')
+                  field: rideable_type
+          - name: start_station_id
+            description: Estación de inicio (FK → stations).
+            tests:
+              - not_null
+          - name: end_station_id
+            description: Estación de fin (FK → stations).
+            tests:
+              - not_null
+          - name: fecha_inicio
+            description: Fecha de inicio del viaje.
+            tests:
+              - not_null
+          - name: weather_id
+            description: Condición meteorológica durante el viaje (FK → weather).
+            tests:
+              - not_null
+          - name: payment_id
+            description: Pago asociado al viaje (FK → payments).
+            tests:
+              - not_null
+          - name: started_at
+            description: Timestamp exacto de inicio del viaje.
+            tests:
+              - not_null
+          - name: ended_at
+            description: Timestamp exacto de fin del viaje.
+            tests:
+              - not_null
+          - name: ride_length_mins
+            description: Duración del viaje en minutos.
+            tests:
+              - not_null
+          - name: distancia_km
+            description: Distancia recorrida en kilómetros.
+            tests:
+              - not_null
+          - name: segmento_viaje
+            description: Categoría de duración del viaje.
+            tests:
+              - not_null
+              - accepted_values:
+                  values: ['micro (<5 min)', 'corto (5-15 min)', 'medio (15-30 min)',
+                           'largo (30-60 min)', 'muy largo (>60 min)']
+          - name: es_ida_vuelta
+            description: Indica si el viaje es de ida y vuelta.
+            tests:
+              - not_null
+              - accepted_values:
+                  values: ['sí', 'no']
+          - name: codigo_promo
+            description: Código promocional aplicado. NINGUNA si no aplica.
+            tests:
+              - not_null
+          - name: descuento_promo_pct
+            description: Porcentaje de descuento promocional aplicado.
+            tests:
+              - not_null
+          - name: descuento_promo_usd
+            description: Importe de descuento promocional en USD.
+            tests:
+              - not_null
+          - name: precio_bruto_usd
+            description: Precio antes de aplicar descuentos.
+            tests:
+              - not_null
+          - name: descuento_plan_usd
+            description: Descuento aplicado por el plan de membresía en USD.
+            tests:
+              - not_null
+          - name: descuento_total_usd
+            description: Suma total de descuentos aplicados.
+            tests:
+              - not_null
+          - name: precio_neto_usd
+            description: Precio final pagado por el usuario tras descuentos.
+            tests:
+              - not_null
+
+      # -----------------------------------------------------------------------
+      # STATIONS
+      # -----------------------------------------------------------------------
+      - name: stations
+        description: Catálogo de estaciones con localización geográfica y clasificación.
+        columns:
+          - name: station_id
+            description: Identificador único de la estación (PK).
+            tests:
+              - unique
+              - not_null
+          - name: station_name
+            description: Nombre descriptivo de la estación.
+            tests:
+              - not_null
+          - name: lat
+            description: Latitud geográfica de la estación.
+            tests:
+              - not_null
+          - name: lng
+            description: Longitud geográfica de la estación.
+            tests:
+              - not_null
+          - name: barrio
+            description: Barrio donde se ubica la estación.
+            tests:
+              - not_null
+          - name: cuadrante
+            description: Cuadrante de la ciudad al que pertenece la estación.
+            tests:
+              - not_null
+          - name: zona
+            description: Zona o district de la ciudad.
+            tests:
+              - not_null
+
+      # -----------------------------------------------------------------------
+      # USERS
+      # -----------------------------------------------------------------------
+      - name: users
+        description: Registro de usuarios con información demográfica y de membresía.
+        loaded_at_field: fecha_registro
+        freshness:
+          warn_after:  { count: 168, period: hour }
+          error_after: { count: 336, period: hour }
+        columns:
+          - name: user_id
+            description: Identificador único del usuario (PK).
+            tests:
+              - unique
+              - not_null
+          - name: membership_id
+            description: Membresía activa del usuario (FK → memberships).
+            tests:
+              - not_null
+              - relationships:
+                  to: source('raw', 'memberships')
+                  field: membership_id
+          - name: nombre_cliente
+            description: Nombre completo del usuario.
+            tests:
+              - not_null
+          - name: email_cliente
+            description: Dirección de correo electrónico del usuario.
+            tests:
+              - not_null
+              - unique
+          - name: edad_cliente
+            description: Edad del usuario en años.
+            tests:
+              - not_null
+          - name: genero_cliente
+            description: Género del usuario.
+            tests:
+              - not_null
+          - name: ciudad_registro
+            description: Ciudad donde el usuario se registró.
+            tests:
+              - not_null
+          - name: pais_cliente
+            description: País del usuario.
+            tests:
+              - not_null
+          - name: fecha_registro
+            description: Fecha en que el usuario se dio de alta.
+            tests:
+              - not_null
+          - name: member_type
+            description: Tipo de usuario (member / casual).
+            tests:
+              - not_null
+              - accepted_values:
+                  values: ['member', 'casual']
+          - name: numero_tarjeta
+            description: Número de tarjeta de pago. Dato PII — se enmascarará en Silver.
+            tests:
+              - not_null
+          - name: tipo_tarjeta
+            description: Tipo de tarjeta de pago.
+            tests:
+              - not_null
+
+      # -----------------------------------------------------------------------
+      # WEATHER
+      # -----------------------------------------------------------------------
+      - name: weather
+        description: Condiciones meteorológicas agrupadas por estación del año.
+        columns:
+          - name: weather_id
+            description: Identificador único de la condición meteorológica (PK).
+            tests:
+              - unique
+              - not_null
+          - name: estacion_anio
+            description: Estación del año y año (ej. verano_2022).
+            tests:
+              - not_null
+          - name: categoria_temp
+            description: Categoría descriptiva de temperatura.
+            tests:
+              - not_null
+          - name: temp_media_c
+            description: Temperatura media en grados Celsius.
+            tests:
+              - not_null

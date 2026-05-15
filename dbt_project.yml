@@ -20,14 +20,14 @@ models:
     #Los models divido en dos bloque siguiendo el esquema que está descrito de staging y marts. (staging materiliza en vistas los datos de DEV_BRONZE_DB.RAW en DEV_SILVER_DB.STAGING)
     staging:
       +materialized: view
-      +schema: STAGING
+      +schema: staging
       +database: "{{ 'DEV_SILVER_DB' if target.name == 'dev' else 'PRO_SILVER_DB' }}"
 
 
     #(marts materiliza en tablas los datos de DEV_SILVER_DB.STAGING en DEV_GOLD_DB.MARTS)
     marts:
       +materialized: table
-      +schema: MARTS
+      +schema: marts
       +database: "{{ 'DEV_GOLD_DB' if target.name == 'dev' else 'PRO_GOLD_DB' }}"
 
     #dbt run SE UTILIZA PARA EJECUTAR EL ENTORNO DEV

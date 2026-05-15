@@ -31,13 +31,15 @@ sources:
             tests:
               - not_null
               - accepted_values:
-                  values: ['sí', 'no']
+                  arguments:
+                    values: ['sí', 'no']
           - name: bici_tiene_muelle
             description: Indica si la bicicleta tiene muelle de anclaje (sí/no).
             tests:
               - not_null
               - accepted_values:
-                  values: ['sí', 'no']
+                  arguments:
+                    values: ['sí', 'no']
           - name: precio_desbloqueo_usd
             description: Coste fijo de desbloqueo en USD.
             tests:
@@ -75,7 +77,8 @@ sources:
             tests:
               - not_null
               - accepted_values:
-                  values: [1, 2, 3, 4]
+                  arguments:
+                    values: [1, 2, 3, 4]
           - name: dia_semana_numero
             description: Número de día de la semana (1=lunes, 7=domingo).
             tests:
@@ -89,7 +92,8 @@ sources:
             tests:
               - not_null
               - accepted_values:
-                  values: ['sí', 'no']
+                  arguments:
+                    values: ['sí', 'no']
           - name: hora
             description: Hora del día (0-23).
             tests:
@@ -107,7 +111,8 @@ sources:
             tests:
               - not_null
               - accepted_values:
-                  values: ['sí', 'no']
+                  arguments:
+                    values: ['sí', 'no']
 
       # -----------------------------------------------------------------------
       # MEMBERSHIPS
@@ -125,8 +130,9 @@ sources:
             tests:
               - not_null
               - relationships:
-                  to: source('raw', 'users')
-                  field: user_id
+                  arguments:
+                    to: source('raw', 'users')
+                    field: user_id
           - name: tipo_plan
             description: Tipo de plan contratado.
             tests:
@@ -145,10 +151,11 @@ sources:
       # -----------------------------------------------------------------------
       - name: payments
         description: Registro de pagos asociados a cada viaje.
-        loaded_at_field: fecha_pago
-        freshness:
-          warn_after:  { count: 24, period: hour }
-          error_after: { count: 48, period: hour }
+        config:
+          loaded_at_field: fecha_pago
+          freshness:
+            warn_after:  { count: 24, period: hour }
+            error_after: { count: 48, period: hour }
         columns:
           - name: payment_id
             description: Identificador único del pago (PK).
@@ -160,21 +167,24 @@ sources:
             tests:
               - not_null
               - relationships:
-                  to: source('raw', 'rides')
-                  field: ride_id
+                  arguments:
+                    to: source('raw', 'rides')
+                    field: ride_id
           - name: payment_method
             description: Método de pago utilizado.
             tests:
               - not_null
               - accepted_values:
-                  values: ['credit_card', 'debit_card', 'paypal',
-                           'apple_pay', 'google_pay', 'wallet_app']
+                  arguments:
+                    values: ['credit_card', 'debit_card', 'paypal',
+                             'apple_pay', 'google_pay', 'wallet_app']
           - name: payment_status
             description: Estado del pago.
             tests:
               - not_null
               - accepted_values:
-                  values: ['completed', 'pending', 'failed']
+                  arguments:
+                    values: ['completed', 'pending', 'failed']
           - name: fecha_pago
             description: Fecha en que se procesó el pago.
             tests:
@@ -191,10 +201,11 @@ sources:
         description: >
           Registro completo de todos los viajes realizados en el sistema.
           Es la tabla principal del modelo operacional.
-        loaded_at_field: started_at
-        freshness:
-          warn_after:  { count: 24, period: hour }
-          error_after: { count: 48, period: hour }
+        config:
+          loaded_at_field: started_at
+          freshness:
+            warn_after:  { count: 24, period: hour }
+            error_after: { count: 48, period: hour }
         columns:
           - name: ride_id
             description: Identificador único del viaje (PK).
@@ -206,15 +217,17 @@ sources:
             tests:
               - not_null
               - relationships:
-                  to: source('raw', 'users')
-                  field: user_id
+                  arguments:
+                    to: source('raw', 'users')
+                    field: user_id
           - name: rideable_type
             description: Tipo de bicicleta utilizada (FK → bikes).
             tests:
               - not_null
               - relationships:
-                  to: source('raw', 'bikes')
-                  field: rideable_type
+                  arguments:
+                    to: source('raw', 'bikes')
+                    field: rideable_type
           - name: start_station_id
             description: Estación de inicio (FK → stations).
             tests:
@@ -256,14 +269,16 @@ sources:
             tests:
               - not_null
               - accepted_values:
-                  values: ['micro (<5 min)', 'corto (5-15 min)', 'medio (15-30 min)',
-                           'largo (30-60 min)', 'muy largo (>60 min)']
+                  arguments:
+                    values: ['micro (<5 min)', 'corto (5-15 min)', 'medio (15-30 min)',
+                             'largo (30-60 min)', 'muy largo (>60 min)']
           - name: es_ida_vuelta
             description: Indica si el viaje es de ida y vuelta.
             tests:
               - not_null
               - accepted_values:
-                  values: ['sí', 'no']
+                  arguments:
+                    values: ['sí', 'no']
           - name: codigo_promo
             description: Código promocional aplicado. NINGUNA si no aplica.
             tests:
@@ -334,10 +349,11 @@ sources:
       # -----------------------------------------------------------------------
       - name: users
         description: Registro de usuarios con información demográfica y de membresía.
-        loaded_at_field: fecha_registro
-        freshness:
-          warn_after:  { count: 168, period: hour }
-          error_after: { count: 336, period: hour }
+        config:
+          loaded_at_field: fecha_registro
+          freshness:
+            warn_after:  { count: 168, period: hour }
+            error_after: { count: 336, period: hour }
         columns:
           - name: user_id
             description: Identificador único del usuario (PK).
@@ -349,8 +365,9 @@ sources:
             tests:
               - not_null
               - relationships:
-                  to: source('raw', 'memberships')
-                  field: membership_id
+                  arguments:
+                    to: source('raw', 'memberships')
+                    field: membership_id
           - name: nombre_cliente
             description: Nombre completo del usuario.
             tests:
@@ -385,7 +402,8 @@ sources:
             tests:
               - not_null
               - accepted_values:
-                  values: ['member', 'casual']
+                  arguments:
+                    values: ['member', 'casual']
           - name: numero_tarjeta
             description: Número de tarjeta de pago. Dato PII — se enmascarará en Silver.
             tests:

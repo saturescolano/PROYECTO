@@ -1,0 +1,570 @@
+version: 2
+
+models:
+
+  # ---------------------------------------------------------------------------
+  # STG_BIKES
+  # ---------------------------------------------------------------------------
+  - name: stg_bikes
+    description: >
+      Catálogo de tipos de bicicleta disponibles con características y tarifas.
+      3 registros. Construido desde RAW.bikes.
+    columns:
+      - name: bike_type_id
+        description: Identificador único del tipo de bicicleta (PK).
+        tests:
+          - unique
+          - not_null
+
+      - name: bike_type_name
+        description: Nombre descriptivo del tipo de bicicleta.
+        tests:
+          - not_null
+
+      - name: is_electric
+        description: TRUE si la bicicleta es eléctrica.
+        tests:
+          - not_null
+
+      - name: has_dock
+        description: TRUE si la bicicleta tiene muelle de anclaje.
+        tests:
+          - not_null
+
+      - name: unlock_price_usd
+        description: Coste fijo de desbloqueo en USD.
+        tests:
+          - not_null
+
+      - name: price_per_min_usd
+        description: Coste variable por minuto de uso en USD.
+        tests:
+          - not_null
+
+  # ---------------------------------------------------------------------------
+  # STG_WEATHER
+  # ---------------------------------------------------------------------------
+  - name: stg_weather
+    description: >
+      Condiciones meteorológicas agrupadas por estación del año.
+      11 registros. Construido desde RAW.weather.
+    columns:
+      - name: weather_id
+        description: Identificador único de la condición meteorológica (PK).
+        tests:
+          - unique
+          - not_null
+
+      - name: season_year
+        description: Estación del año (ej. VERANO, PRIMAVERA).
+        tests:
+          - not_null
+
+      - name: temp_category
+        description: Categoría descriptiva de temperatura.
+        tests:
+          - not_null
+
+      - name: avg_temp_c
+        description: Temperatura media en grados Celsius.
+        tests:
+          - not_null
+
+  # ---------------------------------------------------------------------------
+  # STG_DATES
+  # ---------------------------------------------------------------------------
+  - name: stg_dates
+    description: >
+      Tabla de fechas enriquecida con atributos temporales.
+      365 registros. Construido desde RAW.dates.
+    columns:
+      - name: date_id
+        description: Fecha en formato DATE (PK).
+        tests:
+          - unique
+          - not_null
+
+      - name: year
+        description: Año de la fecha.
+        tests:
+          - not_null
+
+      - name: month_number
+        description: Número de mes (1-12).
+        tests:
+          - not_null
+
+      - name: month_name
+        description: Nombre del mes en español en mayúsculas.
+        tests:
+          - not_null
+
+      - name: quarter
+        description: Trimestre del año (1-4).
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [1, 2, 3, 4]
+
+      - name: weekday_number
+        description: Número de día de la semana (1=lunes, 7=domingo).
+        tests:
+          - not_null
+
+      - name: weekday_name
+        description: Nombre del día de la semana en mayúsculas.
+        tests:
+          - not_null
+
+      - name: is_weekend
+        description: TRUE si la fecha es fin de semana.
+        tests:
+          - not_null
+
+      - name: hour
+        description: Hora del día (0-23).
+        tests:
+          - not_null
+
+      - name: time_slot
+        description: Franja horaria descriptiva en mayúsculas.
+        tests:
+          - not_null
+
+      - name: shift
+        description: Turno del día en mayúsculas (MAÑANA, TARDE, NOCHE).
+        tests:
+          - not_null
+
+      - name: is_peak_hour
+        description: TRUE si es hora pico de demanda.
+        tests:
+          - not_null
+
+  # ---------------------------------------------------------------------------
+  # STG_ZONES
+  # ---------------------------------------------------------------------------
+  - name: stg_zones
+    description: >
+      Catálogo de zonas geográficas de la ciudad.
+      Construido con SELECT DISTINCT desde RAW.stations — no existe tabla propia en Bronze.
+    columns:
+      - name: zone_id
+        description: Identificador único de zona generado sintéticamente con ROW_NUMBER() (PK).
+        tests:
+          - unique
+          - not_null
+
+      - name: zone_name
+        description: Nombre de la zona en mayúsculas.
+        tests:
+          - unique
+          - not_null
+
+      - name: quadrant
+        description: Cuadrante de la ciudad en mayúsculas.
+        tests:
+          - not_null
+
+  # ---------------------------------------------------------------------------
+  # STG_STATIONS
+  # ---------------------------------------------------------------------------
+  - name: stg_stations
+    description: >
+      Catálogo de estaciones con localización geográfica y FK a zona.
+      50 registros. Construido desde RAW.stations.
+    columns:
+      - name: station_id
+        description: Identificador único de la estación (PK).
+        tests:
+          - unique
+          - not_null
+
+      - name: station_name
+        description: Nombre descriptivo de la estación en mayúsculas.
+        tests:
+          - not_null
+
+      - name: latitude
+        description: Latitud geográfica de la estación (6 decimales).
+        tests:
+          - not_null
+
+      - name: longitude
+        description: Longitud geográfica de la estación (6 decimales).
+        tests:
+          - not_null
+
+      - name: zone_id
+        description: FK → stg_zones.
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_zones')
+                field: zone_id
+
+  # ---------------------------------------------------------------------------
+  # STG_PROMOTIONS
+  # ---------------------------------------------------------------------------
+  - name: stg_promotions
+    description: >
+      Catálogo de códigos promocionales únicos.
+      Construido con SELECT DISTINCT desde RAW.rides — no existe tabla propia en Bronze.
+      El valor NINGUNA se excluye — no es una promoción real.
+    columns:
+      - name: promo_code
+        description: Código promocional único (PK).
+        tests:
+          - unique
+          - not_null
+
+      - name: promo_discount_pct
+        description: Porcentaje de descuento aplicado por la promoción.
+        tests:
+          - not_null
+
+  # ---------------------------------------------------------------------------
+  # STG_MEMBERSHIPS
+  # ---------------------------------------------------------------------------
+  - name: stg_memberships
+    description: >
+      Planes de membresía contratados por los usuarios.
+      280 registros. Construido desde RAW.memberships.
+    columns:
+      - name: membership_id
+        description: Identificador único de membresía (PK).
+        tests:
+          - unique
+          - not_null
+
+      - name: user_id
+        description: FK → stg_users.
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_users')
+                field: user_id
+
+      - name: plan_type
+        description: Tipo de plan contratado en mayúsculas.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['BASIC', 'PRO', 'PREMIUM']
+
+      - name: monthly_price_usd
+        description: Precio mensual del plan en USD.
+        tests:
+          - not_null
+
+      - name: discount_pct
+        description: Porcentaje de descuento aplicado al coste del viaje.
+        tests:
+          - not_null
+
+  # ---------------------------------------------------------------------------
+  # STG_USERS
+  # ---------------------------------------------------------------------------
+  - name: stg_users
+    description: >
+      Registro de usuarios con información demográfica y de membresía.
+      400 registros. Construido desde RAW.users.
+      numero_tarjeta enmascarado a últimos 4 dígitos (PII).
+    columns:
+      - name: user_id
+        description: Identificador único del usuario (PK).
+        tests:
+          - unique
+          - not_null
+
+      - name: membership_id
+        description: FK → stg_memberships.
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_memberships')
+                field: membership_id
+
+      - name: customer_name
+        description: Nombre completo del usuario.
+        tests:
+          - not_null
+
+      - name: customer_email
+        description: Email del usuario en minúsculas.
+        tests:
+          - not_null
+          - unique
+
+      - name: customer_age
+        description: Edad del usuario en años.
+        tests:
+          - not_null
+
+      - name: age_segment
+        description: Segmento de edad en mayúsculas.
+        tests:
+          - not_null
+
+      - name: customer_gender
+        description: Género del usuario en mayúsculas.
+        tests:
+          - not_null
+
+      - name: registration_city
+        description: Ciudad de registro en mayúsculas.
+        tests:
+          - not_null
+
+      - name: customer_country
+        description: País del usuario en mayúsculas.
+        tests:
+          - not_null
+
+      - name: registration_date
+        description: Fecha de alta del usuario.
+        tests:
+          - not_null
+
+      - name: member_type
+        description: Tipo de usuario en mayúsculas.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['MEMBER', 'CASUAL']
+
+      - name: card_last4
+        description: Últimos 4 dígitos de la tarjeta de pago (enmascarado PII).
+        tests:
+          - not_null
+
+      - name: card_type
+        description: Tipo de tarjeta de pago en mayúsculas.
+        tests:
+          - not_null
+
+  # ---------------------------------------------------------------------------
+  # STG_PAYMENTS
+  # ---------------------------------------------------------------------------
+  - name: stg_payments
+    description: >
+      Registro de pagos con métricas económicas completas.
+      5000 registros. Construido desde RAW.payments + RAW.rides (métricas económicas).
+    columns:
+      - name: payment_id
+        description: Identificador único del pago (PK).
+        tests:
+          - unique
+          - not_null
+
+      - name: ride_id
+        description: FK → stg_rides.
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_rides')
+                field: ride_id
+
+      - name: user_id
+        description: FK → stg_users.
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_users')
+                field: user_id
+
+      - name: payment_method
+        description: Método de pago en mayúsculas.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['CREDIT_CARD', 'DEBIT_CARD', 'PAYPAL',
+                         'APPLE_PAY', 'GOOGLE_PAY', 'WALLET_APP']
+
+      - name: payment_status
+        description: Estado del pago en mayúsculas.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['COMPLETED', 'PENDING', 'FAILED']
+
+      - name: payment_date
+        description: Fecha en que se procesó el pago.
+        tests:
+          - not_null
+
+      - name: gross_price_usd
+        description: Precio bruto antes de descuentos en USD.
+        tests:
+          - not_null
+
+      - name: promo_discount_usd
+        description: Importe de descuento promocional en USD.
+        tests:
+          - not_null
+
+      - name: plan_discount_usd
+        description: Importe de descuento por plan de membresía en USD.
+        tests:
+          - not_null
+
+      - name: total_discount_usd
+        description: Suma total de descuentos aplicados en USD.
+        tests:
+          - not_null
+
+      - name: net_price_usd
+        description: Precio final pagado por el usuario tras descuentos en USD.
+        tests:
+          - not_null
+
+  # ---------------------------------------------------------------------------
+  # STG_RIDES
+  # ---------------------------------------------------------------------------
+  - name: stg_rides
+    description: >
+      Registro completo de viajes con métricas operacionales.
+      5000 registros. Construido desde RAW.rides.
+      Métricas económicas eliminadas — absorbidas por stg_payments.
+    columns:
+      - name: ride_id
+        description: Identificador único del viaje (PK).
+        tests:
+          - unique
+          - not_null
+
+      - name: user_id
+        description: FK → stg_users.
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_users')
+                field: user_id
+
+      - name: bike_type_id
+        description: FK → stg_bikes.
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_bikes')
+                field: bike_type_id
+
+      - name: start_station_id
+        description: FK → stg_stations (estación de inicio).
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_stations')
+                field: station_id
+
+      - name: end_station_id
+        description: FK → stg_stations (estación de fin).
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_stations')
+                field: station_id
+
+      - name: start_date
+        description: Fecha de inicio del viaje. FK → stg_dates.
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_dates')
+                field: date_id
+
+      - name: weather_id
+        description: FK → stg_weather.
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_weather')
+                field: weather_id
+
+      - name: payment_id
+        description: FK → stg_payments.
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_payments')
+                field: payment_id
+
+      - name: promo_code
+        description: FK opcional → stg_promotions. NULL si no aplica promoción.
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_promotions')
+                field: promo_code
+
+      - name: started_at
+        description: Timestamp exacto de inicio del viaje.
+        tests:
+          - not_null
+
+      - name: ended_at
+        description: Timestamp exacto de fin del viaje.
+        tests:
+          - not_null
+
+      - name: start_hour
+        description: Hora de inicio del viaje (0-23).
+        tests:
+          - not_null
+
+      - name: end_hour
+        description: Hora de fin del viaje (0-23).
+        tests:
+          - not_null
+
+      - name: ride_length_mins
+        description: Duración del viaje en minutos.
+        tests:
+          - not_null
+
+      - name: distance_km
+        description: Distancia recorrida en kilómetros.
+        tests:
+          - not_null
+
+      - name: speed_kmh
+        description: Velocidad media en km/h.
+        tests:
+          - not_null
+
+      - name: trip_segment
+        description: Segmento de duración del viaje en mayúsculas.
+        tests:
+          - not_null
+
+      - name: duration_category
+        description: Categoría de duración del viaje en mayúsculas.
+        tests:
+          - not_null
+
+      - name: is_round_trip
+        description: TRUE si el viaje es de ida y vuelta.
+        tests:
+          - not_null
+
+      - name: is_profitable
+        description: TRUE si el trayecto es rentable.
+        tests:
+          - not_null

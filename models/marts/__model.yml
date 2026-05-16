@@ -1,0 +1,428 @@
+version: 2
+
+models:
+
+  # ---------------------------------------------------------------------------
+  # DIM_BIKE
+  # ---------------------------------------------------------------------------
+  - name: dim_bike
+    description: >
+      Catálogo de tipos de bicicleta disponibles con características y tarifas.
+      3 registros. Construido desde stg_bikes.
+    columns:
+      - name: bike_type_id
+        description: Identificador único del tipo de bicicleta (PK).
+        tests:
+          - unique
+          - not_null
+
+      - name: bike_type_name
+        description: Nombre descriptivo del tipo de bicicleta.
+        tests:
+          - not_null
+
+      - name: is_electric
+        description: TRUE si la bicicleta es eléctrica.
+        tests:
+          - not_null
+
+      - name: has_dock
+        description: TRUE si la bicicleta tiene muelle de anclaje.
+        tests:
+          - not_null
+
+      - name: unlock_price_usd
+        description: Coste fijo de desbloqueo en USD.
+        tests:
+          - not_null
+
+      - name: price_per_min_usd
+        description: Coste variable por minuto de uso en USD.
+        tests:
+          - not_null
+
+  # ---------------------------------------------------------------------------
+  # DIM_WEATHER
+  # ---------------------------------------------------------------------------
+  - name: dim_weather
+    description: >
+      Condiciones meteorológicas agrupadas por estación del año.
+      11 registros. Construido desde stg_weather.
+    columns:
+      - name: weather_id
+        description: Identificador único de la condición meteorológica (PK).
+        tests:
+          - unique
+          - not_null
+
+      - name: season_year
+        description: Estación del año en mayúsculas.
+        tests:
+          - not_null
+
+      - name: temp_category
+        description: Categoría descriptiva de temperatura.
+        tests:
+          - not_null
+
+      - name: avg_temp_c
+        description: Temperatura media en grados Celsius.
+        tests:
+          - not_null
+
+  # ---------------------------------------------------------------------------
+  # DIM_DATE
+  # ---------------------------------------------------------------------------
+  - name: dim_date
+    description: >
+      Dimensión tiempo enriquecida con atributos temporales.
+      365 registros. Construido desde stg_dates.
+    columns:
+      - name: date_id
+        description: Fecha en formato DATE (PK).
+        tests:
+          - unique
+          - not_null
+
+      - name: year
+        description: Año de la fecha.
+        tests:
+          - not_null
+
+      - name: month_number
+        description: Número de mes (1-12).
+        tests:
+          - not_null
+
+      - name: month_name
+        description: Nombre del mes en mayúsculas.
+        tests:
+          - not_null
+
+      - name: quarter
+        description: Trimestre del año (1-4).
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [1, 2, 3, 4]
+
+      - name: weekday_number
+        description: Número de día de la semana (1=lunes, 7=domingo).
+        tests:
+          - not_null
+
+      - name: weekday_name
+        description: Nombre del día de la semana en mayúsculas.
+        tests:
+          - not_null
+
+      - name: is_weekend
+        description: TRUE si la fecha es fin de semana.
+        tests:
+          - not_null
+
+      - name: hour
+        description: Hora del día (0-23).
+        tests:
+          - not_null
+
+      - name: time_slot
+        description: Franja horaria descriptiva en mayúsculas.
+        tests:
+          - not_null
+
+      - name: shift
+        description: Turno del día en mayúsculas.
+        tests:
+          - not_null
+
+      - name: is_peak_hour
+        description: TRUE si es hora pico de demanda.
+        tests:
+          - not_null
+
+  # ---------------------------------------------------------------------------
+  # DIM_STATION
+  # ---------------------------------------------------------------------------
+  - name: dim_station
+    description: >
+      Catálogo de estaciones con localización geográfica y zona desnormalizada.
+      50 registros. Construido desde stg_stations + stg_zones.
+    columns:
+      - name: station_id
+        description: Identificador único de la estación (PK).
+        tests:
+          - unique
+          - not_null
+
+      - name: station_name
+        description: Nombre descriptivo de la estación en mayúsculas.
+        tests:
+          - not_null
+
+      - name: latitude
+        description: Latitud geográfica de la estación.
+        tests:
+          - not_null
+
+      - name: longitude
+        description: Longitud geográfica de la estación.
+        tests:
+          - not_null
+
+      - name: zone_id
+        description: FK → dim_station.zone_id (desnormalizada desde stg_zones).
+        tests:
+          - not_null
+
+      - name: zone_name
+        description: Nombre de la zona en mayúsculas.
+        tests:
+          - not_null
+
+      - name: quadrant
+        description: Cuadrante de la ciudad en mayúsculas.
+        tests:
+          - not_null
+
+  # ---------------------------------------------------------------------------
+  # DIM_PROMOTION
+  # ---------------------------------------------------------------------------
+  - name: dim_promotion
+    description: >
+      Catálogo de códigos promocionales únicos.
+      Construido desde stg_promotions.
+    columns:
+      - name: promo_code
+        description: Código promocional único (PK).
+        tests:
+          - unique
+          - not_null
+
+      - name: promo_discount_pct
+        description: Porcentaje de descuento aplicado por la promoción.
+        tests:
+          - not_null
+
+  # ---------------------------------------------------------------------------
+  # FCT_RIDES
+  # ---------------------------------------------------------------------------
+  - name: fct_rides
+    description: >
+      Registro completo de viajes con métricas operacionales.
+      5000 registros. Construido desde stg_rides.
+      Métricas económicas absorbidas por fct_payments.
+      Materialización incremental append.
+    columns:
+      - name: ride_id
+        description: Identificador único del viaje (PK).
+        tests:
+          - unique
+          - not_null
+
+      - name: user_id
+        description: FK → dim_user.
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_user')
+                field: user_id
+
+      - name: bike_type_id
+        description: FK → dim_bike.
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_bike')
+                field: bike_type_id
+
+      - name: start_station_id
+        description: FK → dim_station (estación de inicio).
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_station')
+                field: station_id
+
+      - name: end_station_id
+        description: FK → dim_station (estación de fin).
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_station')
+                field: station_id
+
+      - name: start_date
+        description: FK → dim_date.
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_date')
+                field: date_id
+
+      - name: weather_id
+        description: FK → dim_weather.
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_weather')
+                field: weather_id
+
+      - name: payment_id
+        description: FK → fct_payments.
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('fct_payments')
+                field: payment_id
+
+      - name: promo_code
+        description: FK opcional → dim_promotion. NULL si no aplica promoción.
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_promotion')
+                field: promo_code
+
+      - name: started_at
+        description: Timestamp exacto de inicio del viaje.
+        tests:
+          - not_null
+
+      - name: ended_at
+        description: Timestamp exacto de fin del viaje.
+        tests:
+          - not_null
+
+      - name: start_hour
+        description: Hora de inicio del viaje (0-23).
+        tests:
+          - not_null
+
+      - name: end_hour
+        description: Hora de fin del viaje (0-23).
+        tests:
+          - not_null
+
+      - name: ride_length_mins
+        description: Duración del viaje en minutos.
+        tests:
+          - not_null
+
+      - name: distance_km
+        description: Distancia recorrida en kilómetros.
+        tests:
+          - not_null
+
+      - name: speed_kmh
+        description: Velocidad media en km/h.
+        tests:
+          - not_null
+
+      - name: trip_segment
+        description: Segmento de duración del viaje en mayúsculas.
+        tests:
+          - not_null
+
+      - name: duration_category
+        description: Categoría de duración del viaje en mayúsculas.
+        tests:
+          - not_null
+
+      - name: is_round_trip
+        description: TRUE si el viaje es de ida y vuelta.
+        tests:
+          - not_null
+
+      - name: is_profitable
+        description: TRUE si el trayecto es rentable.
+        tests:
+          - not_null
+
+  # ---------------------------------------------------------------------------
+  # FCT_PAYMENTS
+  # ---------------------------------------------------------------------------
+  - name: fct_payments
+    description: >
+      Registro de pagos con métricas económicas completas.
+      5000 registros. Construido desde stg_payments.
+      Materialización incremental append.
+    columns:
+      - name: payment_id
+        description: Identificador único del pago (PK).
+        tests:
+          - unique
+          - not_null
+
+      - name: ride_id
+        description: FK → fct_rides.
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('fct_rides')
+                field: ride_id
+
+      - name: user_id
+        description: FK → dim_user.
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_user')
+                field: user_id
+
+      - name: payment_method
+        description: Método de pago en mayúsculas.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['CREDIT_CARD', 'DEBIT_CARD', 'PAYPAL',
+                         'APPLE_PAY', 'GOOGLE_PAY', 'WALLET_APP']
+
+      - name: payment_status
+        description: Estado del pago en mayúsculas.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['COMPLETED', 'PENDING', 'FAILED']
+
+      - name: payment_date
+        description: Fecha en que se procesó el pago.
+        tests:
+          - not_null
+
+      - name: gross_price_usd
+        description: Precio bruto antes de descuentos en USD.
+        tests:
+          - not_null
+
+      - name: promo_discount_usd
+        description: Importe de descuento promocional en USD.
+        tests:
+          - not_null
+
+      - name: plan_discount_usd
+        description: Importe de descuento por plan de membresía en USD.
+        tests:
+          - not_null
+
+      - name: total_discount_usd
+        description: Suma total de descuentos aplicados en USD.
+        tests:
+          - not_null
+
+      - name: net_price_usd
+        description: Precio final pagado por el usuario tras descuentos en USD.
+        tests:
+          - not_null

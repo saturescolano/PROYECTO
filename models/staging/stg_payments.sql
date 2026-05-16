@@ -14,9 +14,22 @@
 --   · user_id añadido desde RAW.rides (FK → stg_users)
 --   · Precios: cast a NUMBER exacto + 2 decimales
 
+--HE DECIDIDO CREAR ESTA MATERIALIZACIÓN COMO INCREMENTAL POR 
+-- Igual que rides, cada pago es un evento nuevo que no cambia.
+
+{{ config(
+    materialized='incremental',
+    incremental_strategy='append'
+) }}
+
 WITH source_payments AS (
 
     SELECT * FROM {{ source('raw', 'payments') }}
+
+     --AÑADIMOS ESTA CONDICIÓN DE COMPROBACIÓN SI ES INCREMENTAL O AUN NO ESTÁ CREADA
+    {% if is_incremental() %}
+        WHERE fecha_pago::DATE > (SELECT MAX(payment_date) FROM {{ this }})
+    {% endif %}
 
 ),
 

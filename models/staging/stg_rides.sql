@@ -17,9 +17,22 @@
 --   · Strings descriptivos a UPPER()
 --   · velocidad_kmh y distancia_km: ROUND a 2 decimales
 
+
+--HE DECIDIDO CREAR ESTA MATERIALIZACIÓN COMO INCREMENTAL POR 
+-- Cada viaje es un evento nuevo e inmutable. Nunca se modifica, solo crece.
+{{ config(
+    materialized='incremental',
+    incremental_strategy='append'
+) }}
+
 WITH source_rides AS (
 
     SELECT * FROM {{ source('raw', 'rides') }}
+
+    --AÑADIMOS ESTA CONDICIÓN DE COMPROBACIÓN SI ES INCREMENTAL O AUN NO ESTÁ CREADA
+    {% if is_incremental() %}
+        WHERE started_at::TIMESTAMP > (SELECT MAX(started_at) FROM {{ this }})
+    {% endif %}
 
 ),
 

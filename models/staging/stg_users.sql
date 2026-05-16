@@ -29,7 +29,7 @@ renamed AS (
         UPPER(membership_id)                                    AS membership_id,   -- FK viene de "stg_memberships"
 
         -- Datos personales
-        customer_name                                           AS customer_name,
+        nombre_cliente                                          AS customer_name,
         LOWER(email_cliente)                                    AS customer_email,  -- Ponemso en minúscula para una mejor interpretación
         edad_cliente::INTEGER                                   AS customer_age,
         UPPER(segmento_edad)                                    AS age_segment,

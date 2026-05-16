@@ -13,6 +13,8 @@
 --   · numero_tarjeta → card_last4: enmascarado por PII,
 --     se conservan solo los últimos 4 dígitos
 
+{{ config(materialized='table') }} --Hacemos una materializacion de este modelo en tabla para que en gold se pueda hacer (SNAPSHOT SCD2) dim_users
+
 WITH source_users AS (
 
     SELECT * FROM {{ source('raw', 'users') }}

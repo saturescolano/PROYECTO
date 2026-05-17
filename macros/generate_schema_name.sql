@@ -1,6 +1,4 @@
 -- macros/generate_schema_name.sql
--- Macro OBLIGATORIA. Sin ella dbt concatena tu usuario al schema:
--- DEV_SILVER_DB.dbt_usuario_staging en vez de DEV_SILVER_DB.staging
 
 {% macro generate_schema_name(custom_schema_name, node) -%}
 

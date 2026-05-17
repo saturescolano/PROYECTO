@@ -14,22 +14,16 @@ snapshot-paths: ["snapshots"]
 clean-targets:
   - "target"
   - "dbt_packages"
+  
       #Comiendo de la declaración de los modelos que tengo en mi proyecto en el entorno DEV
 models:
-  PROYECTO_DE58:   #nombre del proyecto
-    #Los models divido en dos bloque siguiendo el esquema que está descrito de staging y marts. (staging materiliza en vistas los datos de DEV_BRONZE_DB.RAW en DEV_SILVER_DB.STAGING)
+  PROYECTO_DE58:
     staging:
       +materialized: view
-      +schema: staging
-      +database: "{{ 'DEV_SILVER_DB' if target.name == 'dev' else 'PRO_SILVER_DB' }}"
+      +schema: STAGING
+      +database: DEV_SILVER_DB
 
-
-    #(marts materiliza en tablas los datos de DEV_SILVER_DB.STAGING en DEV_GOLD_DB.MARTS)
     marts:
       +materialized: table
-      +schema: marts
-      +database: "{{ 'DEV_GOLD_DB' if target.name == 'dev' else 'PRO_GOLD_DB' }}"
-
-    #dbt run SE UTILIZA PARA EJECUTAR EL ENTORNO DEV
-    #dbt run --target prod SE UTILIZA PARA EJECUTAR EL ENTORNO PRO YA QUE APUNTA A ÉL
-
+      +schema: MARTS
+      +database: DEV_GOLD_DB

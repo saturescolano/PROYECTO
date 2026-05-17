@@ -21,9 +21,9 @@ models:
     staging:
       +materialized: view
       +schema: STAGING
-      +database: DEV_SILVER_DB
+      +database: "{{ 'DEV_SILVER_DB' if target.name == 'dev' else 'PRO_SILVER_DB' }}"
 
     marts:
       +materialized: table
       +schema: MARTS
-      +database: DEV_GOLD_DB
+      +database: "{{ 'DEV_GOLD_DB' if target.name == 'dev' else 'PRO_GOLD_DB' }}"

@@ -124,7 +124,7 @@ sources:
             description: Identificador único de membresía (PK).
             tests:
               - unique
-              - not_null
+              - not_null  # PK de la tabla — siempre debe tener valor
           - name: user_id
             description: Identificador del usuario propietario de la membresía (FK → users).
             tests:
@@ -361,9 +361,11 @@ sources:
               - unique
               - not_null
           - name: membership_id
-            description: Membresía activa del usuario (FK → memberships).
+            description: >
+              Membresía activa del usuario (FK → memberships).
+              NULL si el usuario es de tipo casual y no tiene membresía contratada.
             tests:
-              - not_null
+              # - not_null  ELIMINADO — usuarios casuales no tienen membership_id
               - relationships:
                   arguments:
                     to: source('raw', 'memberships')

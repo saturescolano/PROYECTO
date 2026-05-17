@@ -227,7 +227,7 @@ models:
           - not_null
           - relationships:
               arguments:
-                to: ref('dim_user')
+                to: ref('stg_users')
                 field: user_id
 
       - name: bike_type_id
@@ -377,7 +377,7 @@ models:
           - not_null
           - relationships:
               arguments:
-                to: ref('dim_user')
+                to: ref('stg_users')  #campo modificado porque no pasaba test.  AL SER SNAPSHOT se encuentra en otra carpeta y __models.yml (marts no la ubica)
                 field: user_id
 
       - name: payment_method

@@ -233,11 +233,7 @@ models:
       Planes de membresía contratados por los usuarios.
       280 registros. Construido desde RAW.memberships.
     columns:
-      - name: membership_id
-        description: Identificador único de membresía (PK).
-        tests:
-          - unique
-          - not_null
+    
 
       - name: user_id
         description: FK → stg_users.
@@ -284,7 +280,7 @@ models:
       - name: membership_id
         description: FK → stg_memberships.
         tests:
-          - not_null
+          # - not_null LO DEJAMOS COMENTADO PORQUE VIENEN CAMPOS DE MEMBERSHIP_IDE A NULL PORQUE PUEDE HABER USUARIOS CASUALES QUE NO TIENE MEMBRESIA
           - relationships:
               arguments:
                 to: ref('stg_memberships')

@@ -227,7 +227,7 @@ models:
           - not_null
           - relationships:
               arguments:
-                to: ref('stg_users')
+                to: ref('stg_users')        #ESTO SE HACE PORQUE AL SER UNA SNAPSHOT NO UBICARÍA EN ESA CARPETA EL __models.yml Y POR LO TANTO DA ERROR dbt test
                 field: user_id
 
       - name: bike_type_id

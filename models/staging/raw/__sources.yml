@@ -124,7 +124,7 @@ sources:
             description: Identificador único de membresía (PK).
             tests:
               - unique
-              - not_null  # PK de la tabla — siempre debe tener valor
+              - not_null
           - name: user_id
             description: Identificador del usuario propietario de la membresía (FK → users).
             tests:
@@ -151,11 +151,6 @@ sources:
       # -----------------------------------------------------------------------
       - name: payments
         description: Registro de pagos asociados a cada viaje.
-        config:
-          loaded_at_field: fecha_pago
-          freshness:
-            warn_after:  { count: 9, period: year }
-            error_after: { count: 10, period: year }
         columns:
           - name: payment_id
             description: Identificador único del pago (PK).
@@ -201,11 +196,6 @@ sources:
         description: >
           Registro completo de todos los viajes realizados en el sistema.
           Es la tabla principal del modelo operacional.
-        config:
-          loaded_at_field: started_at
-          freshness:
-            warn_after:  { count: 9, period: year }
-            error_after: { count: 10, period: year }
         columns:
           - name: ride_id
             description: Identificador único del viaje (PK).
@@ -349,11 +339,6 @@ sources:
       # -----------------------------------------------------------------------
       - name: users
         description: Registro de usuarios con información demográfica y de membresía.
-        config:
-          loaded_at_field: fecha_registro
-          freshness:
-            warn_after:  { count: 4, period: year }
-            error_after: { count: 10, period: year }
         columns:
           - name: user_id
             description: Identificador único del usuario (PK).

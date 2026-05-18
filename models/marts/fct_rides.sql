@@ -1,7 +1,7 @@
 -- models/marts/fct_rides.sql
 --
--- Origen : DEV_SILVER_DB.staging.stg_rides (principal)
--- Destino: DEV_GOLD_DB.marts.fct_rides
+-- Origen : SILVER_DB.staging.stg_rides (principal)
+-- Destino: GOLD_DB.marts.fct_rides
 -- Grano  : 1 fila por viaje (5000 registros)
 --
 -- Notas:
@@ -9,16 +9,20 @@
 --   · Las claves foráneas apuntan a las dims de Gold
 --   · No contiene métricas económicas — absorbidas por fct_payments
 
-
---AQUI TAMBIÉN TENEMOS UNA INCREMENTAL (APPEND)
-{{  config(
-        materialized='incremental',
-        incremental_strategy='append'
+{{ config(
+    materialized='incremental',
+    incremental_strategy='append'
 ) }}
 
 WITH stg_rides AS (
 
     SELECT * FROM {{ ref('stg_rides') }}
+
+),
+
+incremental_filter AS (
+
+    SELECT * FROM stg_rides
 
     {% if is_incremental() %}
         WHERE started_at > (SELECT MAX(started_at) FROM {{ this }})
@@ -41,7 +45,7 @@ fct_rides AS (
         promo_code,             -- FK → dim_promotion (opcional)
 
         -- Timestamps
-        started_at,    --ESTE ES EL CAMPO POR EL QUE HEMOS FILTRADO LA INCREMENTAL
+        started_at,
         ended_at,
 
         -- Horas
@@ -59,7 +63,7 @@ fct_rides AS (
         is_round_trip,
         is_profitable
 
-    FROM stg_rides
+    FROM incremental_filter
 
 )
 

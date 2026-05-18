@@ -1,7 +1,7 @@
 -- models/marts/fct_payments.sql
 --
--- Origen : DEV_SILVER_DB.staging.stg_payments (principal)
--- Destino: DEV_GOLD_DB.marts.fct_payments
+-- Origen : SILVER_DB.staging.stg_payments (principal)
+-- Destino: GOLD_DB.marts.fct_payments
 -- Grano  : 1 fila por pago (5000 registros)
 --
 -- Notas:
@@ -10,13 +10,19 @@
 --   · Las claves foráneas apuntan a las dims de Gold
 
 {{ config(
-        materialized='incremental',
-        incremental_strategy='append'
+    materialized='incremental',
+    incremental_strategy='append'
 ) }}
 
 WITH stg_payments AS (
 
     SELECT * FROM {{ ref('stg_payments') }}
+
+),
+
+incremental_filter AS (
+
+    SELECT * FROM stg_payments
 
     {% if is_incremental() %}
         WHERE payment_date > (SELECT MAX(payment_date) FROM {{ this }})
@@ -44,7 +50,7 @@ fct_payments AS (
         total_discount_usd,
         net_price_usd
 
-    FROM stg_payments
+    FROM incremental_filter
 
 )
 

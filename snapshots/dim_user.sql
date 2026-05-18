@@ -6,7 +6,7 @@
 
 {{
     config(
-        target_database='DEV_GOLD_DB', 
+        target_database=env_var('DBT_ENVIRONMENT') ~ '_GOLD_DB',
         target_schema='marts',
         unique_key='user_id',
         strategy='check',               
@@ -25,7 +25,6 @@
         ]
     )
 }}
-
 WITH stg_users AS (
 
     SELECT * FROM {{ ref('stg_users') }}

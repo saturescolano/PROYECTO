@@ -1,7 +1,7 @@
 -- models/staging/stg_users.sql
 --
--- Origen : DEV_BRONZE_DB.RAW.users
--- Destino: DEV_SILVER_DB.staging.stg_users
+-- Origen : BRONZE_DB.RAW.users
+-- Destino: SILVER_DB.staging.stg_users
 -- Grano  : 1 fila por usuario (400 registros)
 --
 -- Cambios respecto a Bronze:
@@ -13,7 +13,7 @@
 --   · numero_tarjeta → card_last4: enmascarado por PII,
 --     se conservan solo los últimos 4 dígitos
 
-{{ config(materialized='table') }} --Hacemos una materializacion de este modelo en tabla para que en gold se pueda hacer (SNAPSHOT SCD2) dim_users
+{{ config(materialized='table') }} -- Materialización en tabla para que el snapshot SCD2 dim_user pueda leer de ella
 
 WITH source_users AS (
 
@@ -24,13 +24,13 @@ WITH source_users AS (
 renamed AS (
 
     SELECT
-        
+
         UPPER(user_id)                                          AS user_id,         -- PK
         UPPER(membership_id)                                    AS membership_id,   -- FK viene de "stg_memberships"
 
         -- Datos personales
         nombre_cliente                                          AS customer_name,
-        LOWER(email_cliente)                                    AS customer_email,  -- Ponemso en minúscula para una mejor interpretación
+        LOWER(email_cliente)                                    AS customer_email,
         edad_cliente::INTEGER                                   AS customer_age,
         UPPER(segmento_edad)                                    AS age_segment,
         UPPER(genero_cliente)                                   AS customer_gender,

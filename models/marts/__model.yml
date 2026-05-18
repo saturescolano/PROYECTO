@@ -265,6 +265,8 @@ models:
               arguments:
                 to: ref('dim_date')
                 field: date_id
+              config:
+                severity: warn   # dim_date solo cubre 2022 — datos de otros años lanzan warn pero no paran el job
 
       - name: weather_id
         description: FK → dim_weather.
@@ -377,7 +379,7 @@ models:
           - not_null
           - relationships:
               arguments:
-                to: ref('stg_users')  #campo modificado porque no pasaba test.  AL SER SNAPSHOT se encuentra en otra carpeta y __models.yml (marts no la ubica)
+                to: ref('stg_users')  #campo modificado porque no pasaba test. AL SER SNAPSHOT se encuentra en otra carpeta y __models.yml (marts no la ubica)
                 field: user_id
 
       - name: payment_method

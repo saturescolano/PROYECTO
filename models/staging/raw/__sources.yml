@@ -7,7 +7,7 @@ sources:
       del sistema de bicicletas compartidas. Fuente de verdad antes de cualquier
       transformación.
     schema: RAW
-    database: "{{ env_var('DBT_BRONZE_DB', 'DEV_BRONZE_DB') }}"
+    database: "{{ env_var('DBT_ENVIRONMENT') }}_BRONZE_DB"
 
     tables:
 

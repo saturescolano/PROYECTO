@@ -14,16 +14,15 @@ snapshot-paths: ["snapshots"]
 clean-targets:
   - "target"
   - "dbt_packages"
-  
-      #Comiendo de la declaración de los modelos que tengo en mi proyecto en el entorno DEV
+
 models:
   PROYECTO_DE58:
     staging:
       +materialized: view
       +schema: STAGING
-      +database: DEV_SILVER_DB
+      +database: "{{ env_var('DBT_ENVIRONMENT') }}_SILVER_DB"
 
     marts:
       +materialized: table
       +schema: MARTS
-      +database: DEV_GOLD_DB
+      +database: "{{ env_var('DBT_ENVIRONMENT') }}_GOLD_DB"

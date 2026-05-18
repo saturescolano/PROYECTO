@@ -15,6 +15,21 @@ clean-targets:
   - "target"
   - "dbt_packages"
 
+# ---------------------------------------------------------------------------
+# HOOKS — Control de warehouse y sesión
+# Se ejecutan al inicio y fin de CADA job automáticamente
+# ---------------------------------------------------------------------------
+on-run-start:
+  - "ALTER WAREHOUSE {{ target.warehouse }} RESUME IF SUSPENDED"
+  - "ALTER SESSION SET STATEMENT_TIMEOUT_IN_SECONDS = 300"
+
+on-run-end:
+  - "ALTER WAREHOUSE {{ target.warehouse }} SUSPEND"
+
+# ---------------------------------------------------------------------------
+# COMIENZO DE MODELS:
+# ---------------------------------------------------------------------------
+
 models:
   PROYECTO_DE58:
     staging:

@@ -154,8 +154,8 @@ sources:
         config:
           loaded_at_field: fecha_pago
           freshness:
-            warn_after:  { count: 24, period: hour }
-            error_after: { count: 48, period: hour }
+            warn_after:  { count: 9, period: year }
+            error_after: { count: 10, period: year }
         columns:
           - name: payment_id
             description: Identificador único del pago (PK).
@@ -204,8 +204,8 @@ sources:
         config:
           loaded_at_field: started_at
           freshness:
-            warn_after:  { count: 24, period: hour }
-            error_after: { count: 48, period: hour }
+            warn_after:  { count: 9, period: year }
+            error_after: { count: 10, period: year }
         columns:
           - name: ride_id
             description: Identificador único del viaje (PK).
@@ -352,8 +352,8 @@ sources:
         config:
           loaded_at_field: fecha_registro
           freshness:
-            warn_after:  { count: 168, period: hour }
-            error_after: { count: 336, period: hour }
+            warn_after:  { count: 4, period: year }
+            error_after: { count: 10, period: year }
         columns:
           - name: user_id
             description: Identificador único del usuario (PK).

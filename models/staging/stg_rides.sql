@@ -1,7 +1,7 @@
 -- models/staging/stg_rides.sql
 --
--- Origen : DEV_BRONZE_DB.RAW.rides
--- Destino: DEV_SILVER_DB.staging.stg_rides
+-- Origen : BRONZE_DB.RAW.rides
+-- Destino: SILVER_DB.staging.stg_rides
 -- Grano  : 1 fila por viaje (5000 registros)
 --
 -- Cambios respecto a Bronze:
@@ -17,9 +17,9 @@
 --   · Strings descriptivos a UPPER()
 --   · velocidad_kmh y distancia_km: ROUND a 2 decimales
 
-
---HE DECIDIDO CREAR ESTA MATERIALIZACIÓN COMO INCREMENTAL POR 
+-- MATERIALIZACIÓN INCREMENTAL CON APPEND
 -- Cada viaje es un evento nuevo e inmutable. Nunca se modifica, solo crece.
+
 {{ config(
     materialized='incremental',
     incremental_strategy='append'
@@ -29,7 +29,12 @@ WITH source_rides AS (
 
     SELECT * FROM {{ source('raw', 'rides') }}
 
-    --AÑADIMOS ESTA CONDICIÓN DE COMPROBACIÓN SI ES INCREMENTAL O AUN NO ESTÁ CREADA
+),
+
+incremental_filter AS (
+
+    SELECT * FROM source_rides
+
     {% if is_incremental() %}
         WHERE started_at::TIMESTAMP > (SELECT MAX(started_at) FROM {{ this }})
     {% endif %}
@@ -39,7 +44,7 @@ WITH source_rides AS (
 renamed AS (
 
     SELECT
-       
+
         UPPER(ride_id)                                          AS ride_id,          -- PK
         UPPER(user_id)                                          AS user_id,          -- FK
         UPPER(rideable_type)                                    AS bike_type_id,     -- FK
@@ -63,7 +68,7 @@ renamed AS (
         hora_inicio::INTEGER                                    AS start_hour,
         hora_fin::INTEGER                                       AS end_hour,
 
-        -- Métricas 
+        -- Métricas
         ride_length_mins::INTEGER                               AS ride_length_mins,
         ROUND(distancia_km::NUMBER, 2)                          AS distance_km,
         ROUND(velocidad_kmh::NUMBER, 2)                         AS speed_kmh,
@@ -72,13 +77,13 @@ renamed AS (
         UPPER(segmento_viaje)                                   AS trip_segment,
         UPPER(categoria_duracion)                               AS duration_category,
 
-        -- CAMBIO LOS VALORES DE AMBOS CAMPOS POR TRUE O FALSE
+        -- Booleanos
         CASE WHEN LOWER(es_ida_vuelta) = 'sí'
              THEN TRUE ELSE FALSE END                           AS is_round_trip,
         CASE WHEN LOWER(is_trayecto_rentable) = 'sí'
              THEN TRUE ELSE FALSE END                           AS is_profitable
 
-    FROM source_rides
+    FROM incremental_filter
 
 )
 

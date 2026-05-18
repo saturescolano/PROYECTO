@@ -1,8 +1,8 @@
 -- models/staging/stg_payments.sql
 --
--- Origen : DEV_BRONZE_DB.RAW.payments (principal)
---          DEV_BRONZE_DB.RAW.rides    (métricas económicas + user_id)
--- Destino: DEV_SILVER_DB.staging.stg_payments
+-- Origen : BRONZE_DB.RAW.payments (principal)
+--          BRONZE_DB.RAW.rides    (métricas económicas + user_id)
+-- Destino: SILVER_DB.staging.stg_payments
 -- Grano  : 1 fila por pago (5000 registros)
 --
 -- Cambios respecto a Bronze:
@@ -14,8 +14,8 @@
 --   · user_id añadido desde RAW.rides (FK → stg_users)
 --   · Precios: cast a NUMBER exacto + 2 decimales
 
---HE DECIDIDO CREAR ESTA MATERIALIZACIÓN COMO INCREMENTAL POR 
--- Igual que rides, cada pago es un evento nuevo que no cambia.
+-- MATERIALIZACIÓN INCREMENTAL CON APPEND
+-- Cada pago es un evento nuevo e inmutable. Nunca se modifica, solo crece.
 
 {{ config(
     materialized='incremental',
@@ -26,7 +26,12 @@ WITH source_payments AS (
 
     SELECT * FROM {{ source('raw', 'payments') }}
 
-     --AÑADIMOS ESTA CONDICIÓN DE COMPROBACIÓN SI ES INCREMENTAL O AUN NO ESTÁ CREADA
+),
+
+incremental_filter AS (
+
+    SELECT * FROM source_payments
+
     {% if is_incremental() %}
         WHERE fecha_pago::DATE > (SELECT MAX(payment_date) FROM {{ this }})
     {% endif %}
@@ -42,8 +47,8 @@ source_rides AS (
 renamed AS (
 
     SELECT
-        
-        UPPER(p.payment_id)                                     AS payment_id, -- PK        
+
+        UPPER(p.payment_id)                                     AS payment_id, -- PK
         UPPER(p.ride_id)                                        AS ride_id,    -- FK
         UPPER(r.user_id)                                        AS user_id,    -- FK
 
@@ -59,9 +64,9 @@ renamed AS (
         ROUND(r.descuento_total_usd::NUMBER, 2)                 AS total_discount_usd,
         ROUND(r.precio_neto_usd::NUMBER, 2)                     AS net_price_usd
 
-    FROM source_payments p
+    FROM incremental_filter p
     INNER JOIN source_rides r
-        ON UPPER(p.ride_id) = UPPER(r.ride_id)    --Hacemos join entre los csv ubicados en raw (payments x rides)
+        ON UPPER(p.ride_id) = UPPER(r.ride_id)
 
 )
 

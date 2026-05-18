@@ -11,7 +11,7 @@
 --   · promo_code a UPPER() para consistencia con FK en stg_rides
 --   · promo_discount_pct: cast explícito a INTEGER
 
-WITH source AS (
+WITH source_rides AS (
 
     SELECT * FROM {{ source('raw', 'rides') }}
 
@@ -24,7 +24,7 @@ promotions AS (
         UPPER(codigo_promo)                                     AS promo_code,          -- PK
         descuento_promo_pct::INTEGER                            AS promo_discount_pct   -- Atributos
 
-    FROM source
+    FROM source_rides
 
     
     WHERE UPPER(codigo_promo) != 'NINGUNA' -- Excluimos el valor NINGUNA

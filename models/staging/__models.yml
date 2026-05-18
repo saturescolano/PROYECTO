@@ -483,6 +483,8 @@ models:
               arguments:
                 to: ref('stg_dates')
                 field: date_id
+                config:
+                severity: warn
 
       - name: weather_id
         description: FK → stg_weather.

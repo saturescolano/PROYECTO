@@ -8,7 +8,7 @@
 --   · Renombrado completo a inglés
 --   · zone_id obtenido por JOIN con stg_zones (FK)
 --   · barrio eliminado — redundante con zone_name en stg_zones
---   · lat / lng: ROUND a 6 decimales (precisión GPS estándar)
+--   · lat / lng: cast a FLOAT, sin transformación adicional
 --   · station_name a UPPER()
 
 WITH source_stations AS (
@@ -33,8 +33,8 @@ renamed AS (
         UPPER(s.station_name)                                   AS station_name,
 
         -- Coordenadas
-        ROUND(s.lat::NUMBER, 6)                                 AS latitude,
-        ROUND(s.lng::NUMBER, 6)                                 AS longitude,
+        s.lat::FLOAT                                            AS latitude,
+        s.lng::FLOAT                                            AS longitude,
 
         
         z.zone_id                                               AS zone_id        -- FK procede de "stg_zones"
